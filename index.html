@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Shooter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="stats">
+            <div class="score">Score: <span id="score">0</span></div>
+            <div class="high-score">High Score: <span id="highScore">0</span></div>
+            <div class="timer">Time: <span id="timer">60</span>s</div>
+        </div>
+        <div id="gameArea"></div>
+        <div class="controls">
+            <button id="startBtn">Start Game</button>
+            <div class="info">
+                <p>Click to shoot bubbles!</p>
+                <p>Hit same-colored bubbles to score</p>
+            </div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
