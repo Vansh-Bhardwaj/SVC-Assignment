@@ -5,20 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bubble Shooter</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div class="background-bubbles" id="backgroundBubbles"></div>
+    <h1 class="game-title">Bubble Shooter</h1>
     <div class="game-container">
         <div class="stats">
             <div class="score">Score: <span id="score">0</span></div>
-            <div class="high-score">High Scores: <span id="highScore">0</span></div>
-            <div class="timer">Time: <span id="timer">60</span>s</div>
+            <div class="high-score">High Score: <span id="highScore">0</span></div>
+            <div class="timer">Time Left: <span id="timer">1:00</span></div>
         </div>
         <div id="gameArea"></div>
         <div class="controls">
             <button id="startBtn">Start Game</button>
             <div class="info">
-                <p>Click to shoot bubbles!</p>
-                <p>Hit same-colored bubbles to score</p>
+                <p>🎯 Click bubbles to pop them!</p>
+                <p>⚡ Chain reactions with matching colors</p>
+                <p>⏱️ Beat the clock and set a high score!</p>
             </div>
         </div>
     </div>

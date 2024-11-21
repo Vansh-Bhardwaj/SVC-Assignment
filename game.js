@@ -12,15 +12,37 @@ class BubbleShooter {
         this.isPlaying = false;
         this.bubbles = [];
         this.colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD'];
-        this.maxBubbles = 12; // Maximum bubbles allowed at once
+        this.maxBubbles = 12;
+        this.processingClick = false;
         
         this.init();
+        this.createBackgroundBubbles();
     }
 
     init() {
         this.highScoreElement.textContent = this.highScore;
         this.startBtn.addEventListener('click', () => this.toggleGame());
-        this.gameArea.addEventListener('click', (e) => this.handleClick(e));
+        this.gameArea.addEventListener('click', (e) => {
+            if (!this.processingClick) {
+                this.handleClick(e);
+            }
+        });
+        this.updateTimer();
+    }
+
+    createBackgroundBubbles() {
+        const bgContainer = document.getElementById('backgroundBubbles');
+        for (let i = 0; i < 20; i++) {
+            const bubble = document.createElement('div');
+            bubble.className = 'bg-bubble';
+            bubble.style.width = Math.random() * 100 + 50 + 'px';
+            bubble.style.height = bubble.style.width;
+            bubble.style.left = Math.random() * 100 + 'vw';
+            bubble.style.top = Math.random() * 100 + 'vh';
+            bubble.style.animationDuration = (Math.random() * 10 + 5) + 's';
+            bubble.style.animationDelay = (Math.random() * 5) + 's';
+            bgContainer.appendChild(bubble);
+        }
     }
 
     toggleGame() {
@@ -38,8 +60,10 @@ class BubbleShooter {
         this.scoreElement.textContent = '0';
         this.gameArea.innerHTML = '';
         this.bubbles = [];
+        this.processingClick = false;
         
         this.startBtn.textContent = 'Stop Game';
+        this.startBtn.style.background = 'linear-gradient(45deg, #ff4444, #cc0000)';
         this.gameLoop = setInterval(() => this.update(), 1000);
         this.spawnInterval = setInterval(() => this.spawnBubble(), 1000);
     }
@@ -77,59 +101,103 @@ class BubbleShooter {
         this.bubbles.push({
             element: bubble,
             color: color,
-            points: Math.floor(100 / size * 10)
+            points: Math.floor(100 / size * 10),
+            isPopping: false
         });
     }
 
-    handleClick(e) {
+    createChainEffect(x, y, color) {
+        const effect = document.createElement('div');
+        effect.className = 'chain-reaction';
+        effect.style.left = `${x}px`;
+        effect.style.top = `${y}px`;
+        effect.style.backgroundColor = color;
+        effect.style.width = '10px';
+        effect.style.height = '10px';
+        
+        this.gameArea.appendChild(effect);
+        setTimeout(() => effect.remove(), 500);
+    }
+
+    showScorePopup(x, y, points) {
+        const popup = document.createElement('div');
+        popup.className = 'score-popup';
+        popup.textContent = `+${points}`;
+        popup.style.left = `${x}px`;
+        popup.style.top = `${y}px`;
+        
+        this.gameArea.appendChild(popup);
+        setTimeout(() => popup.remove(), 1000);
+    }
+
+    async handleClick(e) {
         if (!this.isPlaying) return;
 
-        const clickX = e.clientX - this.gameArea.getBoundingClientRect().left;
-        const clickY = e.clientY - this.gameArea.getBoundingClientRect().top;
+        this.processingClick = true;
+        const rect = this.gameArea.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
 
-        // Create a copy of the bubbles array to avoid modification during iteration
         const bubblesSnapshot = [...this.bubbles];
         
-        bubblesSnapshot.forEach((bubble) => {
-            const rect = bubble.element.getBoundingClientRect();
-            const bubbleX = rect.left - this.gameArea.getBoundingClientRect().left + rect.width / 2;
-            const bubbleY = rect.top - this.gameArea.getBoundingClientRect().top + rect.height / 2;
+        for (const bubble of bubblesSnapshot) {
+            if (bubble.isPopping) continue;
+
+            const bubbleRect = bubble.element.getBoundingClientRect();
+            const bubbleX = bubbleRect.left - rect.left + bubbleRect.width / 2;
+            const bubbleY = bubbleRect.top - rect.top + bubbleRect.height / 2;
             
             const distance = Math.sqrt(
                 Math.pow(clickX - bubbleX, 2) + 
                 Math.pow(clickY - bubbleY, 2)
             );
 
-            if (distance < rect.width / 2) {
-                this.popBubble(bubble);
+            if (distance < bubbleRect.width / 2) {
+                await this.popBubble(bubble, bubbleX, bubbleY);
+                break;
             }
-        });
+        }
+
+        this.processingClick = false;
     }
 
-    popBubble(bubble) {
+    async popBubble(bubble, x, y) {
         const index = this.bubbles.indexOf(bubble);
-        if (index === -1) return; // Bubble already popped
+        if (index === -1 || bubble.isPopping) return;
 
+        bubble.isPopping = true;
+        bubble.element.classList.add('popping');
         bubble.element.classList.add('pop-animation');
         this.score += bubble.points;
         this.scoreElement.textContent = this.score;
+        this.showScorePopup(x, y, bubble.points);
         
-        // Remove bubble from array immediately to prevent double-popping
         this.bubbles.splice(index, 1);
         
-        setTimeout(() => {
-            bubble.element.remove();
-        }, 300);
+        await new Promise(resolve => setTimeout(resolve, 300));
+        bubble.element.remove();
 
-        // Chain reaction for nearby same-colored bubbles
-        const nearbyBubbles = this.bubbles.filter(otherBubble => 
-            otherBubble.color === bubble.color && 
-            this.getDistance(bubble.element, otherBubble.element) < 100
-        );
-
-        nearbyBubbles.forEach(nearbyBubble => {
-            setTimeout(() => this.popBubble(nearbyBubble), 100);
+        const nearbyBubbles = this.bubbles.filter(otherBubble => {
+            if (otherBubble.isPopping || otherBubble.color !== bubble.color) return false;
+            
+            const distance = this.getDistance(bubble.element, otherBubble.element);
+            return distance < 100;
         });
+
+        if (nearbyBubbles.length > 0) {
+            this.createChainEffect(x, y, bubble.color);
+        }
+
+        for (let i = 0; i < nearbyBubbles.length; i++) {
+            const nearbyBubble = nearbyBubbles[i];
+            const rect = nearbyBubble.element.getBoundingClientRect();
+            const gameRect = this.gameArea.getBoundingClientRect();
+            const bubbleX = rect.left - gameRect.left + rect.width / 2;
+            const bubbleY = rect.top - gameRect.top + rect.height / 2;
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await this.popBubble(nearbyBubble, bubbleX, bubbleY);
+        }
     }
 
     getDistance(elem1, elem2) {
@@ -155,14 +223,18 @@ class BubbleShooter {
         }
         
         this.startBtn.textContent = 'Start Game';
+        this.startBtn.style.background = 'linear-gradient(45deg, #4CAF50, #45a049)';
+        
         this.gameArea.innerHTML = `
             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-                <h2>Game Over!</h2>
-                <p>Final Score: ${this.score}</p>
+                <h2 style="font-size: 2em; margin-bottom: 15px;">Game Over!</h2>
+                <p style="font-size: 1.5em;">Final Score: ${this.score}</p>
+                ${this.score > this.highScore ? '<p style="color: #FFD700; margin-top: 10px;">🏆 New High Score! 🏆</p>' : ''}
             </div>
         `;
     }
 }
 
-// Initialize the game
-new BubbleShooter();
+document.addEventListener('DOMContentLoaded', () => {
+    new BubbleShooter();
+});
