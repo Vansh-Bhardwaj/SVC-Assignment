@@ -93,4 +93,4 @@ This project is licensed under the MIT License
 
 ## 📫 Contact
 
-Your Name -Vansh Bhardwaj & Manan Aggarwal
+Developed by  -Vansh Bhardwaj & Manan Aggarwal
